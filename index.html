@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prelim Grade Calculator</title>
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: hsl(323, 58%, 72%);
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        
+        h1 {
+            color: #ffffff;
+            text-align: center;
+            padding: 1em 0;
+            background-color: hsl(300, 19%, 50%);
+        }
+
+        #container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 2rem;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        label {
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="number"] {
+            padding: 0.8rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background-color: #357ABD;
+        }
+
+        .result-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #eef5ff;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .result-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .result {
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Prelim Grade Calculator</h1>
+
+    <div id="container">
+        <!-- Form to enter number of absences -->
+        <form oninput="checkAttendance()" id="attendanceForm">
+            <label for="attendance_absences">Number of Consecutive Absences:</label>
+            <input type="number" id="attendance_absences" value="0" min="0" max="100" placeholder="Enter Number of Absences">
+        </form>
+
+        <!-- Form to enter grades -->
+        <form id="gradeForm">
+            <label for="recitation_score">Recitation Score:</label>
+            <input type="number" id="recitation_score" min="1" max="100" placeholder="Enter Recitation Score: 0-100">
+            
+            <label for="quiz_score">Quiz Score:</label>
+            <input type="number" id="quiz_score" min="1" max="100" placeholder="Enter Quiz Score: 0-100">
+
+            <label for="requirements_grade">Requirements Grade:</label>
+            <input type="number" id="requirements_grade" min="1" max="100" placeholder="Enter Requirements Grade: 0-100">
+
+            <label for="prelim_exam_score">Prelim Exam Score:</label>
+            <input type="number" id="prelim_exam_score" min="1" max="100" placeholder="Enter Prelim Exam Score: 0-100">
+
+            <button type="button" id="calculate_button">Calculate Final Grade</button>
+        </form>
+
+        <!-- Result section -->
+        <div class="result-section">
+            <h2>Result</h2>
+            <div id="result" class="result"></div>
+            <div id="inputted_prelim_grade" class="result"></div>
+            <div id="prelim_result" class="result"></div>
+            <div id="midterm_final_result" class="result"></div>
+            <div id="dean_result" class="result"></div>
+        </div>
+    </div>
+
+    <py-script>
+    def calculate_attendance_grade(attendance_absences):
+        if attendance_absences < 0 or attendance_absences > 4:
+            return "", None
+        if attendance_absences >= 4:
+            return "FAILED", None
+        attendance_score = max(0, 100 - (attendance_absences * 10))
+        return attendance_score
+
+    def calculate_class_standing(quiz_score, requirements_grade, recitation_score):
+        return (quiz_score * 0.40) + (requirements_grade * 0.30) + (recitation_score * 0.30)
+
+    def calculate_prelim_grade(attendance_absences, quiz_score, requirements_grade, recitation_score, prelim_exam_score):
+        attendance_score = calculate_attendance_grade(attendance_absences)
+        if isinstance(attendance_score, str):
+            return attendance_score, None
+        class_standing = calculate_class_standing(quiz_score, requirements_grade, recitation_score)
+        prelim_grade = (prelim_exam_score * 0.60) + (attendance_score * 0.10) + (class_standing * 0.30)
+        return prelim_grade
+
+    def required_grades_for_target(prelim_grade, target):
+        required_midterm = (target - (prelim_grade * 0.20)) / 0.80
+        required_final = (target - (prelim_grade * 0.20)) / 0.80
+        return required_midterm, required_final
+
+    def calculateFinalGrade(event):
+        try:
+            attendance_absences = int(Element("attendance_absences").value)
+            quiz_score = float(Element("quiz_score").value)
+            requirements_grade = float(Element("requirements_grade").value)
+            recitation_score = float(Element("recitation_score").value)
+            prelim_exam_score = float(Element("prelim_exam_score").value)
+
+            prelim_grade = calculate_prelim_grade(attendance_absences, quiz_score, requirements_grade, recitation_score, prelim_exam_score)
+            Element("inputted_prelim_grade").element.innerText = f"Your Prelim Grade is: {prelim_grade:.2f}"
+
+            if prelim_grade < 25.5:
+                Element("prelim_result").element.innerText = "Difficult to pass..."
+            elif prelim_grade < 75:
+                Element("prelim_result").element.innerText = "To pass with 75%..."
+            else:
+                Element("prelim_result").element.innerText = "You already passed!"
+
+            required_midterm_pass, required_final_pass = required_grades_for_target(prelim_grade, 75)
+            Element("midterm_final_result").element.innerText = f"Required midterm grade: {required_midterm_pass:.2f}, Required final grade: {required_final_pass:.2f}"
+
+            if prelim_grade >= 69:
+                required_midterm_deans, required_final_deans = required_grades_for_target(prelim_grade, 90)
+                Element("dean_result").element.innerText = f"To be eligible for Dean's list: Midterm {required_midterm_deans:.2f}, Finals {required_final_deans:.2f}"
+            else:
+                Element("dean_result").element.innerText = "Not eligible for Dean's list"
+
+        except ValueError:
+            Element("result").element.innerText = "Error: Invalid input"
+
+    Element("calculate_button").element.onclick = calculateFinalGrade
+    </py-script>
+</body>
+</html>
